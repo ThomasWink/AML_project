@@ -87,7 +87,7 @@ hist = model.fit_generator(generator.flow(trainX, trainY, batch_size=batch_size)
                    validation_steps=1) #testX.shape[0]
 
 with open(model_prefix + ' training.json', mode='w') as f:
-    json.dump(hist.history, f)
+    json.dump(str(hist.history), f)
 
 yPreds = model.predict(testX)
 yPred = np.argmax(yPreds, axis=1)
