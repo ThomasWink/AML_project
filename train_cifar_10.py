@@ -56,12 +56,14 @@ testX /= 255.0
 trainY = kutils.to_categorical(trainY)
 testY_cat = kutils.to_categorical(testY)
 
+print(testX.shape)
+print(zzz)
 generator = ImageDataGenerator(rotation_range=15,
                                width_shift_range=5./32,
                                height_shift_range=5./32,
                                horizontal_flip=False)
 
-generator.fit(trainX, seed=0, augment=True)
+#generator.fit(trainX, seed=0, augment=True)
 
 if K.image_data_format() == "th":
     init = (3, img_rows, img_cols)
@@ -80,7 +82,6 @@ else:
 
 model.compile(loss="categorical_crossentropy", optimizer="sgd", metrics=["acc"])
 print("Finished compiling")
-
 hist = model.fit_generator(generator.flow(trainX, trainY, batch_size=batch_size), steps_per_epoch=2, epochs=nb_epoch, #steps_per_epoch=len(trainX)
                    callbacks=snapshot.get_callbacks(model_prefix=model_prefix), # Build snapshot callbacks
                    validation_data=(testX[:1], testY_cat[:1]),

@@ -73,7 +73,7 @@ testX /= 255.0
 trainY_cat = kutils.to_categorical(trainY)
 testY_cat = kutils.to_categorical(testY)
 
-if K.image_dim_ordering() == "th":
+if K.image_data_format() == "th":
     init = (3, 32, 32)
 else:
     init = (32, 32, 3)
@@ -92,18 +92,38 @@ best_acc = 0.0
 best_weights = None
 
 train_preds = []
-for fn in models_filenames:
-    model.load_weights(fn)
-    print("Predicting train set values on model %s" % (fn))
-    yPreds = model.predict(trainX, batch_size=128, verbose=2)
-    train_preds.append(yPreds)
+distributions = []
+if OPTIMIZE == 2:
+    for fn in models_filenames:
+        model.load_weights(fn)
+        print("Predicting train set values on model %s" % (fn))
+        yPreds = model.predict(trainX, batch_size=128, verbose=2)
+        correct = []
+        for pred, val in zip(yPreds,trainY_cat): #TODO this should iterate over both arrays at the same time, as to check whether each value is correct
+            if val == pred:
+                correct = append(correct, pred)
+                #check if it is a correct prediction and store that somewhere
+        distributions.append(statistics.NormalDist.from_samples(correct))
+        train_preds.append(yPreds)
+    
 
-test_preds = []
-for fn in models_filenames:
-    model.load_weights(fn)
-    print("Predicting test set values on model %s" % (fn))
-    yPreds = model.predict(testX, batch_size=128, verbose=2)
-    test_preds.append(yPreds)
+else:
+    for fn in models_filenames:
+        model.load_weights(fn)
+        print("Predicting train set values on model %s" % (fn))
+        yPreds = model.predict(trainX, batch_size=128, verbose=2)
+        train_preds.append(yPreds)
+
+
+
+if OPTIMIZE != 2:
+    test_preds = []
+    for fn in models_filenames:
+        model.load_weights(fn)
+        print("Predicting test set values on model %s" % (fn))
+        yPreds = model.predict(testX, batch_size=128, verbose=2)
+        #mask predictions over the normal distributions?? TODO
+        test_preds.append(yPreds)
 
 
 def calculate_weighted_accuracy():
@@ -119,7 +139,6 @@ def calculate_weighted_accuracy():
     print("Error : ", error)
     exit()
 
-
 if OPTIMIZE == 0:
     with open('weights/Ensemble weights %s.json' % model_prefix, mode='r') as f:
         dictionary = json.load(f)
@@ -131,6 +150,12 @@ elif OPTIMIZE == -1:
     prediction_weights = [1. / len(models_filenames)] * len(models_filenames)
     calculate_weighted_accuracy()
 
+elif OPTIMIZE == 2:
+    with open('weights/Ensemble weights %s.json' % model_prefix, mode='r') as f:
+        dictionary = json.load(f)
+
+    #prediction_weights = dictionary['best_weights'] TODO actually do nothing
+    #calculate_weighted_accuracy()
 ''' OPTIMIZATION REGION '''
 
 print()
@@ -144,36 +169,51 @@ def log_loss_func(weights):
 
     return log_loss(trainY_cat, final_prediction)
 
-
-for iteration in range(NUM_TESTS):
-    prediction_weights = np.random.random(len(models_filenames))
-
-    constraints = ({'type': 'eq', 'fun':lambda w: 1 - sum(w)})
-    bounds = [(0, 1)] * len(train_preds)
-
-    result = minimize(log_loss_func, prediction_weights, method='SLSQP', bounds=bounds, constraints=constraints)
-
-    print('Best Ensemble Weights: {weights}'.format(weights=result['x']))
-
-    weights = result['x']
-    weighted_predictions = np.zeros((testX.shape[0], nb_classes), dtype='float32')
-
-    for weight, prediction in zip(weights, test_preds):
-        weighted_predictions += weight * prediction
-
-    yPred = np.argmax(weighted_predictions, axis=1)
+if OPTIMIZE == 2: #TODO this is not the python way, but it should work
+    yPred = []
+    for sample in testX:
+        best = -float("inf")
+        chosen_model
+        for d in distributions:
+            new = d.pdf(sample)
+            if new > best:
+                best = new
+                chosen_model = d
+        yPred.append(d.predict(sample))
     yTrue = testY
-
     accuracy = metrics.accuracy_score(yTrue, yPred) * 100
     error = 100 - accuracy
-    print("Iteration %d: Accuracy : " % (iteration + 1), accuracy)
-    print("Iteration %d: Error : " % (iteration + 1), error)
 
-    if accuracy > best_acc:
-        best_acc = accuracy
-        best_weights = weights
+else:
+    for iteration in range(NUM_TESTS):
+        prediction_weights = np.random.random(len(models_filenames))
 
-    print()
+        constraints = ({'type': 'eq', 'fun':lambda w: 1 - sum(w)})
+        bounds = [(0, 1)] * len(train_preds)
+
+        result = minimize(log_loss_func, prediction_weights, method='SLSQP', bounds=bounds, constraints=constraints)
+
+        print('Best Ensemble Weights: {weights}'.format(weights=result['x']))
+
+        weights = result['x']
+        weighted_predictions = np.zeros((testX.shape[0], nb_classes), dtype='float32')
+
+        for weight, prediction in zip(weights, test_preds):
+            weighted_predictions += weight * prediction
+
+        yPred = np.argmax(weighted_predictions, axis=1)
+        yTrue = testY
+
+        accuracy = metrics.accuracy_score(yTrue, yPred) * 100
+        error = 100 - accuracy
+        print("Iteration %d: Accuracy : " % (iteration + 1), accuracy)
+        print("Iteration %d: Error : " % (iteration + 1), error)
+
+        if accuracy > best_acc:
+            best_acc = accuracy
+            best_weights = weights
+
+        print()
 
 print("Best Accuracy : ", best_acc)
 print("Best Weights : ", best_weights)
