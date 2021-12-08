@@ -5,6 +5,7 @@ import sklearn.metrics as metrics
 from scipy.optimize import minimize
 from sklearn.metrics import log_loss
 from models import wide_residual_net as WRN, dense_net as DN
+import statistics as stat
 
 from keras.datasets import cifar10
 from keras import backend as K
@@ -99,11 +100,12 @@ if OPTIMIZE == 2:
         print("Predicting train set values on model %s" % (fn))
         yPreds = model.predict(trainX, batch_size=128, verbose=2)
         correct = []
-        for pred, val in zip(yPreds,trainY_cat): #TODO this should iterate over both arrays at the same time, as to check whether each value is correct
-            if val == pred:
-                correct = append(correct, pred)
+        for pred, val, trained in zip(yPreds, trainY, trainX): #TODO this should iterate over both arrays at the same time, as to check whether each value is correct
+            cat = np.argmax(pred)
+            if cat == val: #TODO but this gives an error, why?: https://stackoverflow.com/questions/1663807/how-to-iterate-through-two-lists-in-parallel
+                correct = np.append(correct, trained)
                 #check if it is a correct prediction and store that somewhere
-        distributions.append(statistics.NormalDist.from_samples(correct))
+        distributions.append(stat.NormalDist.from_samples(correct))
         train_preds.append(yPreds)
     
 
