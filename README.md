@@ -1,5 +1,10 @@
 # Preface
-This is an implementation of Snapshot Ensembles with some extensions. The original repository can be found at https://github.com/titu1994/Snapshot-Ensembles. The changes are mostly related to our new implementations, but some changes are made to be compatible with TensorFlow 2.4.1 as a backend and Keras 2.3.1.
+This is an implementation of Snapshot Ensembles with some extensions. The original repository can be found at https://github.com/titu1994/Snapshot-Ensembles. The changes are mostly related to our new implementations, but some changes are made to be compatible with newer versions of TensorFlow as a backend and Keras.
+Some arguments that we added to training and/or prediction files are the folowing:
+- validation : This ensures that the training set is split into a training and a validation set.
+- seed: This is a random seed for some extra experiments
+- optimize: The option to weigh snapshots based on multivariate Gaussian distributions is added to this argument.
+
 From now the this will be the README file from the original repository. All files that we edited or added in comparison with the original repository are marked as such.
 
 
