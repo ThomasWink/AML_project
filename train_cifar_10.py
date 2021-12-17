@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import sklearn.metrics as metrics
+from sklearn.model_selection import train_test_split
 import argparse
 
 import tensorflow as tf
@@ -23,6 +24,9 @@ parser.add_argument('--alpha_zero', type=float, default=0.1, help='Initial learn
 
 parser.add_argument('--model', type=str, default='wrn', help='Type of model to train')
 
+parser.add_argument('--validation', action='store_true', help='Split off a part of the training data to use as validation data')
+parser.add_argument('--seed', type=int, default=0, help='Random seed')
+
 # Wide ResNet Parameters
 parser.add_argument('--wrn_N', type=int, default=2, help='Number of WRN blocks. Computed as N = (n - 4) / 6.')
 parser.add_argument('--wrn_k', type=int, default=4, help='Width factor of WRN')
@@ -33,10 +37,13 @@ parser.add_argument('--dn_growth_rate', type=int, default=12, help='Growth rate 
 
 args = parser.parse_args()
 
+np.random.seed(args.seed)
+
 ''' Snapshot major parameters '''
 M = args.M # number of snapshots
 nb_epoch = T = args.nb_epoch # number of epochs
 alpha_zero = args.alpha_zero # initial learning rate
+validation = args.validation
 
 model_type = str(args.model).lower()
 assert model_type in ['wrn', 'dn'], 'Model type must be one of "wrn" for Wide ResNets or "dn" for DenseNets'
@@ -53,17 +60,18 @@ trainX /= 255.0
 testX = testX.astype('float32')
 testX /= 255.0
 
+if (validation):
+    trainX, validationX, trainY, validationY = train_test_split(trainX, trainY, test_size=0.2, random_state=0)
+
 trainY = kutils.to_categorical(trainY)
 testY_cat = kutils.to_categorical(testY)
 
-print(testX.shape)
-print(zzz)
 generator = ImageDataGenerator(rotation_range=15,
                                width_shift_range=5./32,
                                height_shift_range=5./32,
                                horizontal_flip=False)
 
-#generator.fit(trainX, seed=0, augment=True)
+generator.fit(trainX, seed=0, augment=True)
 
 if K.image_data_format() == "th":
     init = (3, img_rows, img_cols)
@@ -82,10 +90,11 @@ else:
 
 model.compile(loss="categorical_crossentropy", optimizer="sgd", metrics=["acc"])
 print("Finished compiling")
-hist = model.fit_generator(generator.flow(trainX, trainY, batch_size=batch_size), steps_per_epoch=2, epochs=nb_epoch, #steps_per_epoch=len(trainX)
+
+hist = model.fit_generator(generator.flow(trainX, trainY, batch_size=batch_size), epochs=nb_epoch, #steps_per_epoch=len(trainX)
                    callbacks=snapshot.get_callbacks(model_prefix=model_prefix), # Build snapshot callbacks
-                   validation_data=(testX[:1], testY_cat[:1]),
-                   validation_steps=1) #testX.shape[0]
+                   validation_data=(testX, testY_cat),
+                   validation_steps=testX.shape[0]//batch_size) #testX.shape[0]
 
 with open(model_prefix + ' training.json', mode='w') as f:
     json.dump(str(hist.history), f)
