@@ -1,3 +1,8 @@
+# Preface
+This is an implementation of Snapshot Ensembles with some extensions. The original repository can be found at https://github.com/titu1994/Snapshot-Ensembles. The changes are mostly related to our new implementations, but some changes are made to be compatible with TensorFlow 2.4.1 as a backend and Keras 2.3.1.
+From now the this will be the README file from the original repository. All files that we edited or added in comparison with the original repository are marked as such.
+
+
 # Snapshot Ensembles in Keras
 
 Implementation of the paper [Snapshot Ensembles: Train 1, Get M for Free](http://openreview.net/pdf?id=BJYwwY9ll) in Keras 1.1.1

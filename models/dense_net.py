@@ -1,6 +1,7 @@
 '''
 Code from my DenseNet repository : https://github.com/titu1994/DenseNet
 '''
+#Original file by Titu1994, changed for this project
 
 
 from tensorflow.keras.models import Model

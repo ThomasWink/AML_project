@@ -1,6 +1,9 @@
 '''
 Code modified from titu1994's Wide Residual Network repository : https://github.com/titu1994/Wide-Residual-Networks
 '''
+#Original file by Titu1994, changed for this project
+
+
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, add, Activation, Dropout, Flatten, Dense
 from tensorflow.keras.layers import Convolution2D
